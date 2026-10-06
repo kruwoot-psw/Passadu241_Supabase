@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ระบบบันทึกครุภัณฑ์</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+
+  /* หน้าจอบล็อกโหลด (Loading Overlay) */
+.loading-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255,255,255,0.85); z-index: 999999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.3s ease; backdrop-filter: blur(3px);
+}
+.loading-overlay.hide { display: none; opacity: 0; }
+.spinner {
+  border: 5px solid #e5e7eb; border-top: 5px solid #0f766e;
+  border-radius: 50%; width: 50px; height: 50px;
+  animation: spin 1s linear infinite; margin-bottom: 16px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+*{box-sizing:border-box}
+body{font-family:'Sarabun',system-ui,sans-serif;margin:0;background:#f4f6f8;color:#1f2937}
+header{background:#0f766e;color:#fff;padding:14px 16px;font-size:17px;font-weight:700;
+       display:flex;justify-content:space-between;align-items:center;gap:8px}
+header .sub{font-size:12px;font-weight:400;opacity:.85}
+nav{display:flex;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:20}
+nav button{flex:1;padding:12px 6px;border:0;background:none;font-family:inherit;font-size:14px;cursor:pointer;color:#6b7280}
+nav button.on{color:#0f766e;border-bottom:3px solid #0f766e;font-weight:600}
+.wrap{max-width:1100px;margin:0 auto;padding:14px}
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:14px}
+label{display:block;margin:10px 0 4px;font-size:14px;font-weight:600}
+input,textarea,select{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:8px;
+       font-size:16px;font-family:inherit;background:#fff}
+input:focus,textarea:focus{outline:2px solid #0f766e;outline-offset:-1px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:0 12px}
+.btn{padding:11px 18px;border:0;border-radius:8px;background:#0f766e;color:#fff;
+     font-size:15px;font-family:inherit;cursor:pointer}
+.btn.gray{background:#6b7280}.btn.red{background:#dc2626}.btn.amber{background:#b45309}
+.btn.sm{padding:7px 12px;font-size:13px}
+.btn-action{display:inline-block;width:68px;padding:6px 0;text-align:center;font-size:13px;border-radius:6px;border:0;cursor:pointer;color:#fff;margin-bottom:4px}
+.btn-action.edit{background:#0f766e}
+.btn-action.del{background:#dc2626}
+.muted{color:#6b7280;font-size:13px}
+.hide{display:none!important}
+hr.sep{border:0;border-top:1px dashed #d1d5db;margin:20px 0}
+details summary{cursor:pointer;font-weight:600;color:#0f766e;margin:14px 0 4px;font-size:14px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:10px}
+.thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;background:#f9fafb}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .x{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;
+          background:rgba(220,38,38,.92);color:#fff;border:0;font-size:15px;line-height:1;cursor:pointer}
+.thumb .tag{position:absolute;left:0;bottom:0;background:rgba(0,0,0,.55);color:#fff;font-size:10px;padding:2px 5px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+th,td{padding:10px;border-bottom:1px solid #eef0f2;text-align:left;font-size:14px;vertical-align:top}
+th{background:#f0fdfa;color:#0f766e;font-size:13px}
+.rowimgs{display:flex;gap:4px;flex-wrap:wrap}
+.rowimgs img{width:54px;height:54px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid #e5e7eb}
+.nophoto{display:inline-block;padding:4px 8px;background:#fef3c7;color:#92400e;border-radius:6px;font-size:12px}
+.badge-ok{display:inline-block;padding:2px 7px;background:#d1fae5;color:#065f46;border-radius:6px;font-size:11px}
+#qrbar{background:#ecfdf5;border-left:4px solid #0f766e;padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:14px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rev{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+.rev thead tr,.rev tbody tr{display:table-row}
+.rev th,.rev td{display:table-cell;vertical-align:middle}
+.rev th{background:#f0fdfa;color:#0f766e;padding:8px;white-space:nowrap;text-align:left}
+.rev td{border-bottom:1px solid #eef0f2;padding:3px}
+.rev td input{border:1px solid #e5e7eb;background:#fff;padding:6px;font-size:13px;width:100%;border-radius:6px;font-family:inherit}
+.rev td input:focus{border-color:#0f766e;outline:none}
+.rev tbody tr.rev-check{background:#fff7ed}
+.rev .cidx{text-align:center;color:#6b7280;width:38px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+#toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{min-width:240px;max-width:320px;padding:12px 16px;border-radius:8px;color:#fff;font-size:14px;
+       box-shadow:0 4px 12px rgba(0,0,0,0.15);opacity:0;transform:translateY(-10px);
+       transition:all 0.3s ease;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{background:#0f766e}
+.toast.error{background:#dc2626}
+.toast.info{background:#1f2937}
+
+/* CSS สำหรับ Modal ยืนยันการลบ */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+  z-index: 10000; opacity: 0; pointer-events: none; transition: all 0.2s ease;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal-box {
+  background: #fff; padding: 24px; border-radius: 12px; width: 90%; max-width: 360px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15); transform: translateY(-20px); transition: transform 0.2s ease;
+  text-align: center;
+}
+.modal-overlay.show .modal-box { transform: translateY(0); }
+.modal-title { font-size: 18px; font-weight: bold; color: #111827; margin-bottom: 8px; }
+.modal-desc { font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.5; }
+.modal-actions { display: flex; gap: 10px; justify-content: center; }
+.modal-actions button { flex: 1; }
+
+/* CSS สำหรับดูรูปขนาดใหญ่ (Lightbox) */
+.img-viewer-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center;
+  z-index: 10005; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+  backdrop-filter: blur(5px);
+}
+.img-viewer-overlay.show { opacity: 1; pointer-events: auto; }
+.img-viewer-overlay img {
+  max-width: 95%; max-height: 90vh; border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  transform: scale(0.9); transition: transform 0.25s ease;
+  object-fit: contain;
+}
+.img-viewer-overlay.show img { transform: scale(1); }
+.img-close-btn {
+  position: absolute; top: 15px; right: 15px; width: 40px; height: 40px;
+  background: rgba(255,255,255,0.2); color: #fff; border: 0; border-radius: 50%;
+  font-size: 26px; line-height: 1; cursor: pointer; transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.img-close-btn:hover { background: rgba(220,38,38,0.9); }
+
+/* 📱 Responsive Design สำหรับโทรศัพท์มือถือ (Accordion Card) */
+@media(max-width:700px){
+  .grid2,.grid4{grid-template-columns:1fr}
+  thead{display:none}
+  
+  /* ปรับปรุงโครงสร้างการ์ด */
+  #tb tr { display:block; background:#fff; border-radius:12px; margin-bottom:12px; padding:6px; box-shadow: 0 2px 5px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; transition: all 0.3s ease; }
+  #tb td { display:flex; border:0; padding:8px; align-items: center; }
+  #tb td::before { content:attr(data-l); font-weight:600; width:105px; flex:none; color:#6b7280; font-size:13px; }
+  
+/* ระบบซ่อน/แสดง รายละเอียดในมือถือ (ซ่อน Checkbox และรายละเอียดอื่นๆ) */
+  #tb tr:not(.expanded) td:nth-child(1),
+  #tb tr:not(.expanded) td:nth-child(n+5) { display: none; }
+  
+  /* ช่องชื่อรายการให้คลิกได้ และมีลูกศรบอกสถานะ */
+  #tb td.name-col { cursor: pointer; position: relative; padding-right: 30px; align-items: flex-start; }
+  #tb td.name-col b { color: #0f766e; }
+  #tb td.name-col::after {
+    content: '▼'; position: absolute; right: 10px; top: 12px; font-size: 12px; color: #9ca3af; transition: transform 0.2s ease;
+  }
+  #tb tr.expanded td.name-col::after { transform: rotate(180deg); color: #0f766e; }
+  
+  /* จัดปุ่ม แก้ไข/ลบ ให้ใหญ่และสวยขึ้นเมื่อกดขยาย */
+  #tb td:last-child { display: flex; gap: 10px; border-top: 1px dashed #e5e7eb; margin-top: 6px; padding-top: 14px; justify-content: space-between; }
+  #tb td:last-child::before { display: none; } /* ซ่อนข้อความนำหน้าคำว่าจัดการ */
+  #tb td:last-child .btn-action { flex: 1; margin: 0; padding: 10px 0; font-size: 14px; border-radius: 8px; }
+
+  #toast-container{top:10px;right:10px;left:10px}
+  .toast{max-width:100%}
+}
+
+#printReportArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printReportArea,#printReportArea *{visibility:visible}
+  #printReportArea{display:block;position:absolute;left:0;top:0;width:100%;background:#fff;padding:10mm;font-family:'Sarabun',sans-serif;color:#000}
+  @page{size:A4 portrait;margin:10mm}
+  .rep-header{text-align:center;font-size:16pt;font-weight:bold;margin-bottom:4px}
+  .rep-sub{text-align:center;font-size:13pt;margin-bottom:15px}
+  .rep-table{width:100%;border-collapse:collapse;font-size:11pt}
+  .rep-table th,.rep-table td{border:1px solid #000;padding:6px 8px;vertical-align:middle}
+  .rep-table th{background:#f2f2f2;text-align:center}
+  .rep-img{width:60px;height:60px;object-fit:cover;margin:2px;border:1px solid #ccc}
+  .rep-sign{margin-top:30px;display:flex;justify-content:space-between;font-size:12pt;page-break-inside:avoid}
+  .rep-sign-box{text-align:center;width:45%}
+  .sheet{display:none}
+}
+</style>
+</head>
+<body>
+
+  <!-- บล็อกการแสดงผลตอนกำลังโหลดอัปโหลดรูป -->
+<div id="loadingOverlay" class="loading-overlay hide">
+  <div class="spinner"></div>
+  <b style="color:#0f766e; font-size:16px;">กำลังประมวลผลและบันทึกข้อมูล...</b>
+  <div class="muted" style="margin-top:8px;">กรุณารอสักครู่ ห้ามปิดหน้าจอ</div>
+</div>
+
+<div id="toast-container"></div>
+
+<header>
+  <div>ระบบบันทึกครุภัณฑ์<div class="sub" id="orgName"></div></div>
+  <button class="btn sm gray" onclick="document.getElementById('qrcam').click()">สแกน QR</button>
+</header>
+<input type="file" id="qrcam" accept="image/*" capture="environment" class="hide">
+
+<nav>
+  <button class="on" onclick="tab(0,this)">เพิ่ม / แก้ไข</button>
+  <button onclick="tab(1,this)">สรุปรายการ</button>
+  <button onclick="tab(2,this)">นำเข้าข้อมูล</button>
+</nav>
+
+<div class="wrap">
+
+  <!-- หน้า 1 : ฟอร์ม -->
+  <section id="p0">
+    <div class="card">
+      <div id="qrbar" class="hide"></div>
+      <input type="hidden" id="f_id">
+      <input type="hidden" id="f_seq">
+      <input type="hidden" id="f_regPrefix" value="ส.ค.ณ.">
+
+      <label>รายการ *</label>
+      <input id="f_name" placeholder="เช่น Rode Directional Shot gun Microphone NTG4+">
+
+      <div class="grid2">
+        <div><label>เลขทะเบียน *</label><input id="f_regNo" placeholder="6215-01700002"></div>
+        <div><label>สถานที่เก็บ *</label><input id="f_location" placeholder="ห้อง 241" value="ห้อง 241"></div>
+      </div>
+
+      <label>หมายเหตุ</label>
+      <textarea id="f_note" rows="2" placeholder="เช่น กล้องสื่อ"></textarea>
+
+      <details>
+        <summary>ข้อมูลทะเบียนเพิ่มเติม (ได้มา / ราคา / สภาพ)</summary>
+        <div class="grid2">
+          <div><label>ได้มาอย่างไร</label><input id="f_acqMethod" placeholder="เฉพาะเจาะจง" value="เฉพาะเจาะจง"></div>
+          <div><label>ได้มาเมื่อไร</label><input id="f_acqDate" type="date"></div>
+        </div>
+        <div class="grid2">
+          <div><label>ใช้เงินประเภท</label><input id="f_fundType" placeholder="เงินระดมทรัพยากร" value="เงินระดมทรัพยากร"></div>
+          <div><label>จำนวนหน่วย</label><input id="f_qty" type="number" value="1"></div>
+        </div>
+        <div class="grid2">
+          <div><label>ราคาต่อหน่วย</label><input id="f_unitPrice" type="text" inputmode="decimal" placeholder="เช่น 1500.00"></div>
+        </div>
+        <div class="grid4">
+          <div><label>ใช้ได้</label><input id="f_usable" type="number"></div>
+          <div><label>ใช้ไม่ได้</label><input id="f_unusable" type="number"></div>
+          <div><label>สูญหาย</label><input id="f_lost" type="number"></div>
+          <div><label>คงเหลือ</label><input id="f_remain" type="number"></div>
+        </div>
+      </details>
+
+      <label>รูปภาพ (เลือกได้หลายรูป / ถ่ายจากมือถือได้)</label>
+      <input type="file" id="ffile" accept="image/*" multiple>
+      <div class="muted">ระบบย่อรูปอัตโนมัติเหลือด้านยาว 1024px คุณภาพ 70% ก่อนอัปโหลด</div>
+      <div class="thumbs" id="thumbs"></div>
+
+      <div class="bar" style="margin-top:16px">
+        <button class="btn" onclick="save()">บันทึก</button>
+        <button class="btn gray" onclick="resetForm()">ล้างฟอร์ม</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- หน้า 2 : สรุป -->
+  <section id="p1" class="hide">
+    <div class="card">
+      <input id="q" placeholder="ค้นหา รายการ / เลขทะเบียน / สถานที่ / หมายเหตุ" oninput="render()">
+      <div id="stat" class="muted" style="margin-top:8px">กำลังโหลดข้อมูล...</div>
+      <div class="bar" style="margin-top:10px">
+        <label style="margin:0;font-weight:400"><input type="checkbox" id="selall" onchange="toggleAll(this)" style="width:auto"> เลือกทั้งหมด</label>
+        <button class="btn sm" onclick="printReport()">🖨️ พิมพ์รายงานพร้อมรูปภาพ</button>
+        <button class="btn sm amber" onclick="printQr()">🏷️ พิมพ์สติ๊กเกอร์ QR</button>
+        <button class="btn sm gray" onclick="load()">รีเฟรช</button>
+        <span id="selcount" class="muted">เลือก 0 รายการ</span>
+      </div>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th style="width:34px"></th>
+          <th style="width:60px">ลำดับที่</th>
+          <th>รายการ</th>
+          <th>หมายเลขครุภัณฑ์</th>
+          <th>สถานที่เก็บ</th>
+          <th>หมายเหตุ</th>
+          <th style="width:130px">รูปภาพ</th>
+          <th style="width:150px;text-align:center">จัดการ</th>
+        </tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+    <div id="printArea"></div>
+    <div id="printReportArea"></div>
+  </section>
+
+  <!-- หน้า 3 : นำเข้า -->
+  <section id="p2" class="hide">
+    <div class="card">
+      <label>① นำเข้าจากลิงก์ Google Sheets <span class="muted">(วิธีแนะนำ)</span></label>
+      <input id="fsurl" placeholder="https://docs.google.com/spreadsheets/d/..../edit#gid=0">
+      <div class="muted">เปิดไฟล์ Excel ใน Google ไดรฟ์ → ไฟล์ → บันทึกเป็น Google ชีต → คัดลอกลิงก์มาวาง</div>
+      <div class="bar" style="margin-top:10px">
+        <button class="btn" onclick="readSheetUrl()">อ่านจากลิงก์</button>
+        <button class="btn gray sm" onclick="checkImportLink()">ตรวจหัวตาราง</button>
+      </div>
+
+      <hr class="sep">
+
+      <label>② นำเข้าจากไฟล์ PDF <span class="muted">(OCR — ต้องตรวจแก้ก่อนบันทึก)</span></label>
+      <input type="file" id="fpdf" accept="application/pdf">
+      <button class="btn gray" style="margin-top:10px" onclick="readPdf()">อ่านรายการจาก PDF</button>
+
+      <div id="impmsg" class="muted" style="margin-top:12px;white-space:pre-wrap"></div>
+      <div id="impprev"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Modal แจ้งเตือนลบข้อมูล -->
+<div id="delModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">⚠️️ ยืนยันการลบข้อมูล</div>
+    <div class="modal-desc" id="delModalDesc">คุณต้องการลบรายการนี้ใช่หรือไม่?<br>ข้อมูลและรูปภาพจะถูกลบอย่างถาวร</div>
+    <div class="modal-actions">
+      <button class="btn gray" onclick="closeDelModal()">ยกเลิก</button>
+      <button class="btn red" id="btnConfirmDel">ลบข้อมูล</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ดูรูปภาพขนาดใหญ่ -->
+<div id="imgViewerModal" class="img-viewer-overlay" onclick="closeImgViewer()">
+  <button class="img-close-btn" onclick="closeImgViewer()">&times;</button>
+  <img id="imgViewerSrc" src="" referrerpolicy="no-referrer" onclick="event.stopPropagation()">
+</div>
+
+<!-- Modal สรุปผลการนำเข้าข้อมูล -->
+<div id="importResultModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">✅ นำเข้าข้อมูลสำเร็จ</div>
+    <div class="modal-desc" style="font-size: 16px; margin-top: 15px; margin-bottom: 25px;">
+      
+      <!-- บรรทัดที่ 1: บันทึกรายการใหม่ -->
+      <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+        <span>📝 บันทึกรายการใหม่:</span>
+        <b id="txtAdded" style="color:#0f766e;">0 รายการ</b>
+      </div>
+      
+      <!-- บรรทัดที่ 2: อัปเดตข้อมูลเดิม -->
+      <div style="display:flex; justify-content:space-between; margin-bottom: 8px; padding-top: 8px; border-top: 1px dashed #e5e7eb;">
+        <span>🔄 อัปเดตข้อมูลเดิม:</span>
+        <b id="txtUpdated" style="color:#b45309;">0 รายการ</b>
+      </div>
+
+      <!-- บรรทัดที่ 3: ข้ามรายการ (เพิ่มใหม่แยกเป็นสัดส่วนชัดเจน) -->
+      <div style="display:flex; justify-content:space-between; padding-top: 8px; border-top: 1px dashed #e5e7eb;">
+        <span style="color: gray;">⏭️ ข้าม (ข้อมูลเหมือนเดิม):</span>
+        <b id="txtSkipped" style="color: gray;">0 รายการ</b>
+      </div>
+
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeImportResultModal()">ตกลง</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+// =======================================================================
+// ตั้งค่าระบบ API เชื่อมโยงไปที่ Google Apps Script 
+// =======================================================================
+
+const GAS_API_URL = "ใส่_URL_WEB_APP_ของคุณที่นี่"; 
+
+// ตัวแปรที่ใช้แสดงข้อมูลเบื้องต้นบนหน้าเว็บ (แทนที่ของเดิมที่ใช้แท็ก < ? ! =  ? >)
+var APP_URL = window.location.href.split('?')[0]; 
+var OPEN_ID = new URLSearchParams(window.location.search).get('id') || '';
+var BOOT = { org: 'ห้อง Studio 241' };
+document.getElementById('orgName').textContent = BOOT.org;
+
+// =======================================================================
+// ฟังก์ชัน Wrapper สำหรับเรียกใช้ Google Apps Script แบบ API (fetch)
+// =======================================================================
+async function gasApi(action, payload = {}) {
+  try {
+    const response = await fetch(GAS_API_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, payload: payload })
+    });
+    
+    const res = await response.json();
+    if (res.status === 'error') throw new Error(res.message);
+    return res.data;
+  } catch (err) {
+    console.error("API Error: ", err);
+    throw err;
+  }
+}
+
+// ตัวแปรระบบทั่วไป
+var items = [], impRows = [], impPdfId = '';
+var newImgs = [], keepIds = [], removedIds = [];
+var deleteTargetId = null; 
+
+var FORM_FIELDS = ['seq','name','regPrefix','regNo','acqMethod','acqDate','fundType','qty',
+                   'unitPrice','usable','unusable','lost','remain','location','note'];
+
+function $(id){ return document.getElementById(id); }
+
+function showToast(message, type) {
+  type = type || 'success';
+  var container = $('toast-container');
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.innerHTML = '<span>' + esc(message) + '</span>';
+  
+  container.appendChild(toast);
+  setTimeout(function(){ toast.classList.add('show'); }, 50);
+  setTimeout(function(){
+    toast.classList.remove('show');
+    setTimeout(function(){ toast.remove(); }, 300);
+  }, 3500);
+}
+
+function tab(i, b){
+  [0,1,2].forEach(function(n){ $('p'+n).classList.toggle('hide', n !== i); });
+  var btns = document.querySelectorAll('nav button');
+  for (var k=0; k<btns.length; k++) btns[k].classList.remove('on');
+  if (b) b.classList.add('on');
+  if (i === 1 && !items.length) load();
+  window.scrollTo(0,0);
+}
+
+function toISODate(dStr) {
+  if (!dStr) return '';
+  dStr = String(dStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dStr)) return dStr;
+  
+  var thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var fullMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  
+  var parts = dStr.split(/[\/\-\s]+/);
+  if (parts.length >= 3) {
+    var d = parts[0].padStart(2, '0');
+    var m = parts[1];
+    var y = parseInt(parts[2], 10);
+    
+    var mIdx = thMonths.indexOf(m);
+    if (mIdx === -1) mIdx = fullMonths.indexOf(m);
+    if (mIdx > -1) {
+      m = String(mIdx + 1).padStart(2, '0');
+    } else {
+      m = String(parseInt(m, 10)).padStart(2, '0');
+    }
+    
+    if (y < 100) y += 2500;
+    if (y > 2400) y -= 543;
+    
+    return y + '-' + m + '-' + d;
+  }
+  return '';
+}
+
+function setForm(x){
+  $('f_id').value = (x && x.id) || '';
+  FORM_FIELDS.forEach(function(k){
+    var el = $('f_'+k); 
+    if (el) {
+      var val = (x && x[k] !== undefined && x[k] !== null) ? String(x[k]) : '';
+      if (k === 'acqDate') {
+        el.value = toISODate(val);
+      } else {
+        el.value = val; 
+      }
+    }
+  });
+  if (!$('f_regPrefix').value) $('f_regPrefix').value = 'ส.ค.ณ.';
+}
+
+function getForm(){
+  var o = { id: $('f_id').value };
+  FORM_FIELDS.forEach(function(k){ 
+    var el = $('f_'+k); 
+    if(el) {
+      if (k === 'acqDate') {
+        var dv = el.value; 
+        if (dv) {
+          var pts = dv.split('-');
+          var thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+          var d = parseInt(pts[2], 10); 
+          var m = thMonths[parseInt(pts[1], 10) - 1]; 
+          var y = String(parseInt(pts[0], 10) + 543).slice(-2); 
+          o[k] = d + ' ' + m + ' ' + y; 
+        } else {
+          o[k] = '';
+        }
+      } else {
+        o[k] = el.value.trim(); 
+      }
+    }
+  });
+  return o;
+}
+
+function resetForm(){
+  setForm(null); 
+  newImgs = []; keepIds = []; removedIds = [];
+  drawThumbs(); 
+  $('qrbar').classList.add('hide');
+  
+  var fieldAcq = $('acqMethod') || $('f_acqMethod');
+  if(fieldAcq) fieldAcq.value = 'ตกลงราคา';
+  
+  var fieldFund = $('fundType') || $('f_fundType');
+  if(fieldFund) fieldFund.value = 'เงินอุดหนุน';
+  
+  var fieldLoc = $('location') || $('f_location');
+  if(fieldLoc) fieldLoc.value = 'ห้อง 241';
+}
+
+function resize(file, max, q){
+  max = max || 1024; q = q || 0.7; 
+  return new Promise(function(res){
+    var r = new FileReader();
+    r.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        var s = Math.min(1, max / Math.max(w,h));
+        w = Math.round(w*s); h = Math.round(h*s);
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(c.toDataURL('image/jpeg', q));
+      };
+      img.src = e.target.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+$('ffile').addEventListener('change', function(e){
+  var files = Array.prototype.slice.call(e.target.files);
+  e.target.value = '';
+  (function next(){
+    if (!files.length) { drawThumbs(); return; }
+    var f = files.shift();
+    resize(f).then(function(d){
+      newImgs.push({
+        name: 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2,6) + '.jpg',
+        mime: 'image/jpeg', data: d.split(',')[1], preview: d
+      });
+      drawThumbs(); next();
+    });
+  })();
+});
+
+function drawThumbs(){
+  var box = $('thumbs'); box.innerHTML = '';
+  keepIds.forEach(function(id, i){
+    box.insertAdjacentHTML('beforeend',
+      '<div class="thumb"><img src="https://drive.google.com/thumbnail?id='+id+'&sz=w400">'+
+      '<span class="tag">เดิม</span><button class="x" onclick="rmOld('+i+')">&times;</button></div>');
+  });
+  newImgs.forEach(function(im, i){
+    box.insertAdjacentHTML('beforeend',
+      '<div class="thumb"><img src="'+im.preview+'">'+
+      '<span class="tag">ใหม่</span><button class="x" onclick="rmNew('+i+')">&times;</button></div>');
+  });
+}
+function rmOld(i){ removedIds.push(keepIds[i]); keepIds.splice(i,1); drawThumbs(); }
+function rmNew(i){ newImgs.splice(i,1); drawThumbs(); }
+
+
+// =======================================================================
+// เชื่อมต่อ API ทดแทน google.script.run
+// =======================================================================
+
+function save(){
+  var p = getForm();
+  if (!p.name || !p.regNo || !p.location){ showToast('กรอก รายการ / เลขทะเบียน / สถานที่เก็บ ให้ครบ', 'error'); return; }
+  p.newImages = newImgs.map(function(im){ return { name:im.name, mime:im.mime, data:im.data }; });
+  p.keepImageIds = keepIds; p.removedImageIds = removedIds;
+  
+  $('loadingOverlay').classList.remove('hide');
+  
+  gasApi('saveItem', p)
+    .then(function(newId){
+      $('loadingOverlay').classList.add('hide');
+      showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+      resetForm(); items = [];
+      tab(1, document.querySelectorAll('nav button')[1]); 
+    })
+    .catch(function(e){
+      $('loadingOverlay').classList.add('hide');
+      showToast('ผิดพลาด: ' + e.message, 'error');
+    });
+}
+
+function load(){
+  $('stat').textContent = 'กำลังโหลดข้อมูล...';
+  
+  gasApi('getItems')
+    .then(function(d){
+      try { 
+        items = (d && d.length !== undefined) ? d : []; 
+        render(); 
+        if (OPEN_ID) {
+          var target = OPEN_ID; OPEN_ID = '';
+          edit(target); 
+        }
+      } catch(err){ showToast('แสดงผลผิดพลาด: ' + err.message, 'error'); }
+    })
+    .catch(function(e){
+      showToast('โหลดไม่สำเร็จ: ' + e.message, 'error');
+      $('stat').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+      $('tb').innerHTML = '';
+    });
+}
+
+$('btnConfirmDel').addEventListener('click', function() {
+  if (!deleteTargetId) return;
+  var id = deleteTargetId;
+  closeDelModal(); 
+  
+  showToast('กำลังลบรายการ...', 'info');
+  
+  gasApi('deleteItem', { id: id })
+    .then(function(){
+      items = items.filter(function(i){ return i.id !== id; }); 
+      render();
+      showToast('ลบรายการสำเร็จ', 'success');
+    })
+    .catch(function(e) {
+      showToast('ผิดพลาด: ' + e.message, 'error');
+    });
+});
+
+function doCheck(id) {
+  showToast('กำลังบันทึกการตรวจนับ...', 'info');
+  $('loadingOverlay').classList.remove('hide');
+  
+  gasApi('markAsChecked', { id: id })
+    .then(function(dateStr){
+      $('loadingOverlay').classList.add('hide');
+      showToast('✅ บันทึกการตรวจนับเรียบร้อย', 'success');
+      for(var i=0; i<items.length; i++) {
+        if(items[i].id === id) items[i].checkedAt = dateStr;
+      }
+      render();
+    })
+    .catch(function(e){ 
+      $('loadingOverlay').classList.add('hide');
+      showToast('❌ ผิดพลาด: ' + e.message, 'error'); 
+    });
+}
+
+function printQr(){
+  var ids = sel();
+  if (!ids.length){ showToast('เลือกรายการที่ต้องการพิมพ์ก่อน', 'error'); return; }
+  
+  showToast('⏳ กำลังสร้างไฟล์ PDF สติ๊กเกอร์ (อาจใช้เวลา 5-15 วินาที)...', 'info');
+  
+  gasApi('generateQrPdfServer', { ids: ids, appUrl: APP_URL, orgName: BOOT.org })
+    .then(function(base64Data){
+      if (!base64Data) {
+         showToast('❌ ไม่สามารถสร้างไฟล์ PDF ได้', 'error');
+         return;
+      }
+      showToast('✅ สร้าง PDF สำเร็จ! กำลังดาวน์โหลด...', 'success');
+      
+      var byteCharacters = atob(base64Data);
+      var byteNumbers = new Array(byteCharacters.length);
+      for (var i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      var byteArray = new Uint8Array(byteNumbers);
+      var file = new Blob([byteArray], { type: 'application/pdf' });
+      var fileURL = URL.createObjectURL(file);
+      
+      var a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = fileURL;
+      a.download = 'QR_Stickers_' + new Date().getTime() + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      
+      setTimeout(function() {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(fileURL);
+      }, 3000);
+    })
+    .catch(function(err){
+      showToast('❌ ผิดพลาด: ' + err.message, 'error');
+    });
+}
+
+function readSheetUrl(){
+  var u = $('fsurl').value.trim();
+  if (!u){ showToast('วางลิงก์ Google Sheets ก่อน', 'error'); return; }
+  showToast('กำลังอ่านข้อมูลจากลิงก์...', 'info');
+  
+  gasApi('importFromSheetUrl', { url: u })
+    .then(function(res){
+      impRows = res.rows; impPdfId = ''; drawReview();
+      showToast('อ่านข้อมูลสำเร็จ ' + res.rows.length + ' รายการ', 'success');
+    })
+    .catch(function(er){ 
+      showToast('ผิดพลาด: ' + er.message, 'error'); 
+    });
+}
+
+function readPdf(){
+  var f = $('fpdf').files[0];
+  if (!f){ showToast('เลือกไฟล์ PDF ก่อน', 'error'); return; }
+  showToast('กำลัง OCR เอกสาร (อาจใช้เวลาสักครู่)...', 'info');
+  
+  var r = new FileReader();
+  r.onload = function(e){
+    gasApi('uploadPdf', { b64: e.target.result.split(',')[1], name: f.name })
+      .then(function(res){
+        impRows = res.rows; impPdfId = res.pdfId; drawReview();
+        showToast('อ่าน PDF สำเร็จ ' + res.rows.length + ' รายการ', 'success');
+      })
+      .catch(function(er){ 
+        showToast('ผิดพลาด: ' + er.message, 'error'); 
+      });
+  };
+  r.readAsDataURL(f);
+}
+
+function doImport(){
+  if (!impRows.length){ showToast('ไม่มีรายการให้นำเข้า', 'error'); return; }
+  
+  $('loadingOverlay').classList.remove('hide');
+  
+  gasApi('importRows', { rows: impRows, pdfId: impPdfId })
+    .then(function(r){
+      $('loadingOverlay').classList.add('hide'); 
+      
+      $('txtAdded').textContent = r.added + ' รายการ';
+      $('txtUpdated').textContent = r.updated + ' รายการ';
+      if ($('txtSkipped')) { $('txtSkipped').textContent = r.skipped + ' รายการ'; }
+      
+      $('importResultModal').classList.add('show');
+      
+      $('impprev').innerHTML = ''; impRows = []; items = [];
+      tab(1, document.querySelectorAll('nav button')[1]);
+    })
+    .catch(function(e){ 
+      $('loadingOverlay').classList.add('hide');
+      showToast('ผิดพลาด: ' + e.message, 'error'); 
+    });
+}
+
+function checkImportLink() {
+  var urlInput = document.getElementById('fsurl'); 
+  if (!urlInput || !urlInput.value) {
+    showToast('กรุณาวางลิงก์ก่อนครับ', 'error');
+    return;
+  }
+  
+  var url = urlInput.value.trim();
+  $('loadingOverlay').classList.remove('hide'); 
+  
+  gasApi('getImportDataFromLink', { url: url })
+    .then(function(data){
+      $('loadingOverlay').classList.add('hide');
+      showToast('✅ ดึงข้อมูลสำเร็จ! พบ ' + (data.length - 1) + ' รายการ', 'success');
+      renderImportPreview(data);
+    })
+    .catch(function(error){
+      $('loadingOverlay').classList.add('hide');
+      alert('❌ ข้อผิดพลาด: ' + error.message); 
+    });
+}
+
+// =======================================================================
+// UI Functions (ฟังก์ชันแสดงผลและอื่นๆ)
+// =======================================================================
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function render(){
+  if (!items || items.length === undefined) items = [];
+  var k = ($('q').value || '').toLowerCase();
+  
+  var list = items.filter(function(x){
+    return !k || ((x.name||'') + (x.regNo||'') + (x.location||'') + (x.note||'')).toLowerCase().indexOf(k) > -1;
+  });
+
+  var noPhoto = list.filter(function(x){ return !x.hasPhoto; }).length;
+  var checked = list.filter(function(x){ return x.checkedAt; }).length;
+  $('stat').innerHTML = 'ทั้งหมด <b>'+list.length+'</b> รายการ · มีรูปแล้ว <b>'+(list.length-noPhoto)+'</b>'
+    + (noPhoto ? ' · <span style="color:#c2410c">ยังไม่มีรูป <b>'+noPhoto+'</b></span>' : '')
+    + ' · ตรวจนับแล้ว <b>'+checked+'</b>';
+
+  $('tb').innerHTML = list.map(function(x, idx){
+    var imgs = x.images.map(function(i){
+      return '<img src="'+i.url+'" referrerpolicy="no-referrer" onclick="viewImg(\''+i.id+'\', \''+i.url+'\')">';
+    }).join('') || '<span class="nophoto">ยังไม่มีรูป</span>';
+
+    var seqDisplay = x.seq ? x.seq : (idx + 1);
+
+    return '<tr>'
+      + '<td data-l="เลือก"><input type="checkbox" class="sel" value="'+x.id+'" onchange="cnt()" style="width:18px; height:18px; margin-left:2px;"></td>'
+      + '<td data-l="ลำดับที่" style="text-align:center">'+seqDisplay+'</td>'
+      + '<td data-l="รายการ" class="name-col" onclick="this.parentNode.classList.toggle(\'expanded\')"><b>'+esc(x.name)+'</b>'
+        + (x.checkedAt ? '<div><span class="badge-ok">ตรวจนับ '+esc(x.checkedAt)+'</span></div>' : '') + '</td>'
+      + '<td data-l="หมายเลขครุภัณฑ์"><code>'+esc(x.regPrefix)+' '+esc(x.regNo)+'</code></td>'
+      + '<td data-l="สถานที่เก็บ">'+esc(x.location || '-')+'</td>'
+      + '<td data-l="หมายเหตุ">'+esc(x.note || '-')+'</td>'
+      + '<td data-l="รูปภาพ"><div class="rowimgs">'+imgs+'</div></td>'
+      + '<td data-l="จัดการ" style="text-align:center">'
+        + '<button class="btn-action edit" onclick="edit(\''+x.id+'\')">แก้ไข</button> '
+        + '<button class="btn-action" style="background:#059669;" onclick="doCheck(\''+x.id+'\')">ตรวจนับ</button> '
+        + '<button class="btn-action del" onclick="del(\''+x.id+'\')">ลบ</button>'
+      + '</td>'
+      + '</tr>';
+  }).join('') || '<tr><td colspan="8" class="muted" style="padding:20px">ยังไม่มีข้อมูล</td></tr>';
+  cnt();
+}
+
+function edit(id){
+  var x = null;
+  for (var i=0; i<items.length; i++) if (items[i].id === id) x = items[i];
+  if (!x) return;
+  setForm(x);
+  keepIds = (x.images || []).map(function(i){ return i.id; });
+  newImgs = []; removedIds = [];
+  drawThumbs();
+  tab(0, document.querySelectorAll('nav button')[0]);
+  $('qrbar').innerHTML = '📝 กำลังแก้ไขข้อมูล: <b>' + esc(x.name) + '</b>';
+  $('qrbar').classList.remove('hide');
+  showToast('ดึงข้อมูลมาแก้ไขแล้ว', 'info');
+}
+
+function del(id){
+  var x = null;
+  for (var i=0; i<items.length; i++) if (items[i].id === id) x = items[i];
+  if (!x) return;
+  
+  deleteTargetId = id; 
+  $('delModalDesc').innerHTML = 'คุณต้องการลบรายการ <b>' + esc(x.name) + '</b> ใช่หรือไม่?<br><span style="color:#dc2626">ข้อมูลและรูปภาพจะถูกลบอย่างถาวร</span>';
+  $('delModal').classList.add('show');
+}
+
+function closeDelModal() {
+  $('delModal').classList.remove('show');
+  deleteTargetId = null;
+}
+
+function sel(){
+  return Array.prototype.slice.call(document.querySelectorAll('.sel:checked')).map(function(c){ return c.value; });
+}
+function cnt(){ $('selcount').textContent = 'เลือก ' + sel().length + ' รายการ'; }
+function toggleAll(c){
+  var all = document.querySelectorAll('.sel');
+  for (var i=0; i<all.length; i++) all[i].checked = c.checked;
+  cnt();
+}
+
+function printReport(){
+  var ids = sel();
+  var list = ids.length ? ids.map(function(id){
+    for (var i=0; i<items.length; i++) if (items[i].id === id) return items[i];
+    return null;
+  }).filter(Boolean) : items;
+
+  if (!list.length){ showToast('ไม่มีข้อมูลสำหรับพิมพ์รายงาน', 'error'); return; }
+
+  var html = '<div class="rep-header">รายงานผลการตรวจสอบครุภัณฑ์ ' + esc(BOOT.org) + '</div>'
+    + '<div class="rep-sub">บัญชีครุภัณฑ์และภาพถ่ายประกอบการตรวจสอบ</div>'
+    + '<table class="rep-table"><thead><tr>'
+    + '<th style="width:40px">ที่</th>'
+    + '<th>รายการ</th>'
+    + '<th style="width:130px">หมายเลขครุภัณฑ์</th>'
+    + '<th style="width:90px">สถานที่เก็บ</th>'
+    + '<th style="width:90px">หมายเหตุ</th>'
+    + '<th style="width:140px">รูปภาพประกอบ</th>'
+    + '</tr></thead><tbody>';
+
+  list.forEach(function(x, idx){
+    var seq = x.seq ? x.seq : (idx + 1);
+    var imgsHtml = (x.images || []).map(function(i){
+      return '<img src="'+i.url+'" class="rep-img">';
+    }).join('') || '<span style="color:#888;font-size:10pt">ไม่มีรูป</span>';
+
+    html += '<tr>'
+      + '<td style="text-align:center">'+seq+'</td>'
+      + '<td><b>'+esc(x.name)+'</b></td>'
+      + '<td style="text-align:center;font-family:monospace">'+esc(x.regPrefix)+' '+esc(x.regNo)+'</td>'
+      + '<td style="text-align:center">'+esc(x.location||'-')+'</td>'
+      + '<td style="text-align:center">'+esc(x.note||'-')+'</td>'
+      + '<td style="text-align:center">'+imgsHtml+'</td>'
+      + '</tr>';
+  });
+
+  html += '</tbody></table>'
+    + '<div class="rep-sign">'
+    + '<div class="rep-sign-box">ลงชื่อ......................................................ผู้รายงาน<br>(......................................................)</div>'
+    + '<div class="rep-sign-box">ลงชื่อ......................................................ประธานกรรมการ<br>(......................................................)</div>'
+    + '</div>';
+
+  $('printReportArea').innerHTML = html;
+  setTimeout(function(){ window.print(); }, 900);
+}
+
+var REV_COLS = [['name','รายการ',260],['regNo','เลขทะเบียน',130],['location','สถานที่เก็บ',115],
+                ['acqDate','ได้มาเมื่อ',95],['fundType','ประเภทเงิน',140],['unitPrice','หน่วยละ',90],
+                ['remain','คงเหลือ',70],['note','หมายเหตุ',110]];
+
+function drawReview(){
+  var host = $('impprev'); host.innerHTML = '';
+  if (!impRows.length){ $('impmsg').textContent = 'ไม่พบรายการในไฟล์นี้'; return; }
+
+  var warn = impRows.filter(function(r){ return r.confidence === 'check'; }).length;
+  $('impmsg').innerHTML = 'พบ <b>'+impRows.length+'</b> รายการ'
+    + (warn ? ' · <span style="color:#c2410c">ควรตรวจสอบ <b>'+warn+'</b> แถว</span>' : '')
+    + '<br>แก้ไขในช่องได้เลย แล้วกดนำเข้า';
+
+  var wrap = document.createElement('div'); wrap.className = 'scroll';
+  var tb = document.createElement('table'); tb.className = 'rev';
+  var thead = document.createElement('thead');
+  var htr = document.createElement('tr');
+  htr.appendChild(document.createElement('th')).className = 'cidx';
+  REV_COLS.forEach(function(c){
+    var th = document.createElement('th'); th.textContent = c[1]; th.style.minWidth = c[2]+'px'; htr.appendChild(th);
+  });
+  htr.appendChild(document.createElement('th')); thead.appendChild(htr); tb.appendChild(thead);
+
+  var tbody = document.createElement('tbody');
+  impRows.forEach(function(x, i){
+    var tr = document.createElement('tr');
+    tr.className = (x.confidence === 'check') ? 'rev-check' : '';
+    var td0 = document.createElement('td'); td0.className = 'cidx'; td0.textContent = i+1; tr.appendChild(td0);
+
+    REV_COLS.forEach(function(c){
+      var td = document.createElement('td');
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = (x[c[0]] === undefined || x[c[0]] === null) ? '' : x[c[0]];
+      inp.addEventListener('input', (function(idx, field){
+        return function(){ impRows[idx][field] = this.value; };
+      })(i, c[0]));
+      td.appendChild(inp); tr.appendChild(td);
+    });
+
+    var tdx = document.createElement('td');
+    var bx = document.createElement('button');
+    bx.className = 'btn sm red'; bx.innerHTML = '&times;';
+    bx.onclick = (function(idx){ return function(){ impRows.splice(idx,1); drawReview(); }; })(i);
+    tdx.appendChild(bx); tr.appendChild(tdx);
+    tbody.appendChild(tr);
+  });
+  tb.appendChild(tbody); wrap.appendChild(tb); host.appendChild(wrap);
+
+  var bar = document.createElement('div'); bar.className = 'bar'; bar.style.marginTop = '12px';
+  bar.innerHTML = '<button class="btn" onclick="doImport()">นำเข้าทั้งหมด</button>'
+    + '<button class="btn amber" onclick="bulkLoc()">กำหนดสถานที่เก็บทุกแถว</button>'
+    + '<button class="btn gray sm" onclick="cancelImport()">ยกเลิก</button>';
+  host.appendChild(bar);
+}
+
+function bulkLoc(){
+  var v = prompt('กำหนดสถานที่เก็บให้ทุกแถว (เช่น ห้อง 241)');
+  if (v === null) return;
+  impRows.forEach(function(r){ r.location = v; });
+  drawReview();
+  showToast('อัปเดตสถานที่เก็บทั้งหมดแล้ว', 'success');
+}
+function cancelImport(){
+  impRows = []; $('impprev').innerHTML = ''; $('impmsg').textContent = '';
+  showToast('ยกเลิกการนำเข้าแล้ว', 'info');
+}
+
+function closeImportResultModal() {
+  $('importResultModal').classList.remove('show');
+}
+
+$('qrcam').addEventListener('change', function(e){
+  var f = e.target.files[0];
+  if(!f) return;
+  e.target.value = ''; 
+  showToast('กำลังประมวลผลรูป QR...', 'info');
+  var r = new FileReader();
+  r.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement("canvas");
+      var w = img.width, h = img.height;
+      var max = 1000;
+      if(w > max || h > max) { var scale = max/Math.max(w,h); w*=scale; h*=scale; }
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      var imgData = ctx.getImageData(0, 0, w, h);
+      var code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
+      if(code){
+        var match = code.data.match(/id=([a-zA-Z0-9_-]+)/);
+        if(match){
+           var id = match[1];
+           if(confirm('✅ พบรายการครุภัณฑ์!\n\nคุณต้องการ "บันทึกการตรวจนับ" (เช็คสต๊อก) ใช่หรือไม่?\n\n- กด [ตกลง / OK] เพื่อบันทึกการตรวจนับว่าของยังอยู่\n- กด [ยกเลิก / Cancel] เพื่อเปิดดูหรือแก้ไขข้อมูลเฉยๆ')) {
+              doCheck(id);
+              tab(1, document.querySelectorAll('nav button')[1]);
+           } else {
+              if(items.length === 0) {
+                 OPEN_ID = id;
+                 tab(1, document.querySelectorAll('nav button')[1]);
+              } else {
+                 edit(id);
+              }
+           }
+        } else { showToast('ข้อมูลใน QR ไม่ถูกต้อง', 'error'); }
+      } else { showToast('ไม่พบ QR Code ในภาพ', 'error'); }
+    };
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(f);
+});
+
+function renderImportPreview(data) {
+  var container = document.getElementById('impprev');
+  if(!container) return;
+  
+  var html = '<table class="w-full"><thead><tr>';
+  
+  var headers = data[0];
+  for(var i = 0; i < headers.length; i++) {
+    html += '<th style="text-align:left;">' + headers[i] + '</th>';
+  }
+  html += '</tr></thead><tbody id="importTbody">';
+  
+  for(var r = 1; r < data.length; r++) {
+    html += '<tr>';
+    for(var c = 0; c < data[r].length; c++) {
+      html += '<td>' + data[r][c] + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  
+  container.innerHTML = html;
+}
+
+function viewImg(id, url) {
+  var targetUrl = url || ('https://lh3.googleusercontent.com/d/' + id);
+  $('imgViewerSrc').src = targetUrl;
+  $('imgViewerModal').classList.add('show');
+}
+
+function closeImgViewer() {
+  $('imgViewerModal').classList.remove('show');
+  setTimeout(function(){ $('imgViewerSrc').src = ''; }, 250);
+}
+
+window.addEventListener('load', function(){ 
+  if (OPEN_ID) tab(1, document.querySelectorAll('nav button')[1]); 
+});
+</script>
+</body>
+</html>
