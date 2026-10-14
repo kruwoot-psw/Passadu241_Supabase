@@ -22,10 +22,9 @@
 name: Supabase Keep-Alive Ping
 
 on:
-  schedule: # รันอัตโนมัติทุก ๆ 3 วัน (เวลา 00:00 น. UTC หรือ 07:00 น. เวลาไทย)
-   
+  schedule:
     - cron: '0 0 */3 * *'
-  workflow_dispatch: # เปิดให้เราสามารถกดคลิกรันสคริปต์เองเพื่อทดสอบได้ด้วย
+  workflow_dispatch:
 
 jobs:
   ping-supabase:
@@ -44,6 +43,7 @@ jobs:
         curl -i -X GET "${{ secrets.SUPABASE_URL }}/rest/v1" \
           -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}"
+
 
           
 # 💡 อธิบายการทำงานของโค้ด:
