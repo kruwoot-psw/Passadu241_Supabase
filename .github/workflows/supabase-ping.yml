@@ -1,25 +1,16 @@
-name: Supabase Keep-Alive Ping
+name: Keep Supabase Alive
 
 on:
   schedule:
-    - cron: '0 0 */6 * *'
-  workflow_dispatch:
+    - cron: '0 0 * * 0,4' # รันอัตโนมัติทุกวันอาทิตย์และพฤหัสบดี
+  workflow_dispatch: # อนุญาตให้กดรันเองเพื่อทดสอบได้
 
 jobs:
-  ping-supabase:
+  ping:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Ping Supabase Rest API
-      run: |
-        # ตรวจสอบเบื้องต้นว่ามี Secret ผูกไว้จริงไหมเพื่อไม่ให้สคริปต์พังลึกลับ
-        if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.SUPABASE_KEY }}" ]; then
-          echo "Error: Missing GitHub Secrets (SUPABASE_URL or SUPABASE_KEY)"
-          exit 1
-        fi
-
-        # รันคำสั่งส่งสคริปต์ Ping 
-        curl -i -X GET "${{ secrets.SUPABASE_URL }}/rest/v1" \
+      - name: Ping Supabase Database
+        run: |
+          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/keep_alive?select=*&limit=1" \
           -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}"
-
