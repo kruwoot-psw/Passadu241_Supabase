@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Ping Supabase Database
         run: |
-          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/keep_alive?select=*&limit=1" \
+          curl -f -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/keep_alive?select=*&limit=1" \
           -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}"
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d '{}'
